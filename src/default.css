@@ -1,0 +1,24 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+s|Label{
+	fontFamily:"SourceSansPro";
+	fontSize:15;
+}
+s|TextInput{
+	fontFamily:"SourceSansPro";
+	fontSize:15;
+}
+mx|LinkButton{
+	fontSize:15;
+}
+s|Scroller{
+	skinClass:ClassReference("com.magazine.ui.skin.ScrollerSkin");
+}
+mx|VBox{
+	horizontalScrollBarStyleName:myVScrollBarStyleName;
+}
+.myVScrollBarStyleName {
+	skinClass:ClassReference("com.magazine.ui.skin.VScrollBarSkin");
+}

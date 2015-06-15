@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx" 
+					   width="1024" height="768" showStatusBar="false"
+					   creationComplete="windowedapplication_creationCompleteHandler(event)" 
+					   xmlns:title="com.magazine.ui.title.*" 
+					   xmlns:footer="com.magazine.ui.footer.*" xmlns:menu="com.magazine.ui.menu.*" xmlns:container="com.magazine.ui.container.*">
+	<fx:Style source="default.css"/>
+	<fx:Script>
+		<![CDATA[
+			import com.magazine.data.ApplicationData;
+			import com.magazine.ui.event.AppWindowsTitleEvent;
+			import com.magazine.ui.footer.event.CatalogiesClickEvent;
+			import com.magazine.ui.footer.event.SliderValueChangeEvent;
+			import com.magazine.ui.menu.event.MenuItemSelectedEvent;
+			import com.magazine.ui.menu.event.SubMenuHiddenEvent;
+			import com.magazine.ui.menu.sub.EditGroup;
+			import com.magazine.ui.menu.sub.FileGroup;
+			
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			
+			import spark.effects.Move;
+			import spark.effects.easing.Sine;
+			/**
+			 * 
+			 * @author 鲍建宵
+			 * @site: http://www.cloudmessager.com/blog
+			 */
+			[Embed(source="/assets/icon/SourceHanSansCN-Normal.otf",fontFamily="SourceSansPro",fontWeight="normal",mimeType="application/x-font",embedAsCFF="true")]
+			protected static const SOURCE_SANS_PRO_REGULAR:Class;
+			[Embed(source="/assets/icon/SourceHanSansCN-Bold.otf",fontFamily="SourceSansPro",fontWeight="bold",mimeType="application/x-font",embedAsCFF="true")]
+			protected static const SOURCE_SANS_PRO_BOLD:Class;
+			
+			private var hiddenMove:Move = new Move();
+			private var catalogiesMove:Move = new Move();
+			private var applicationData:ApplicationData = new ApplicationData();
+			protected function windowedapplication_creationCompleteHandler(event:FlexEvent):void
+			{
+				applicationData.tempFolder = File.createTempDirectory().nativePath;
+				
+				var menuConfig:Array = [
+					{
+						label:"文件",
+						data:"file",
+						selected:true,
+						group:new FileGroup()
+					},
+					{
+						label:"编辑",
+						data:"edit",
+						group:new EditGroup()
+					},
+					{
+						label:"插入",
+						data:"insert"
+					},
+					{
+						label:"预览",
+						data:"preview"
+					},
+					{
+						label:"帮助",
+						data:"help"
+					}
+				]; 
+				
+				winTitle.menu.dataProvider = menuConfig;
+				subMenu.dataProvider = menuConfig;
+				subMenu.applicationData = applicationData;
+				hiddenMove.easer = new Sine(0.2);
+				hiddenMove.duration = 100;
+				catalogiesMove.easer = new Sine(0.2);
+				catalogiesMove.duration = 100;
+				positionChangeHandler();
+				catalogiesMove.addEventListener(EffectEvent.EFFECT_END, sizeChangedHandler);
+			}
+			
+			protected function windowstitle_mouseDownHandler(event:MouseEvent):void
+			{
+				nativeWindow.startMove();
+			}
+			
+			protected function windowstitle_titleCloseClickHandler(event:AppWindowsTitleEvent):void
+			{
+				this.close();
+			}
+			
+			protected function windowstitle_titleMaxClickHandler(event:AppWindowsTitleEvent):void
+			{
+				switch(stage.displayState) {
+					case "normal":
+						stage.displayState = StageDisplayState.FULL_SCREEN;    
+						break;
+					case "fullScreen":
+					default:
+						stage.displayState = StageDisplayState.NORMAL;
+						break;
+				}
+				setPagerContainerSize();
+			}
+			
+			protected function windowstitle_titleMinClickHandler(event:AppWindowsTitleEvent):void
+			{
+				this.minimize();
+			}
+			
+			protected function menu_selectedEventHandler(event:MenuItemSelectedEvent):void
+			{
+				if(!subMenu.fixed){
+					hiddenMove.yTo = subMenu.position;
+					hiddenMove.play([subMenu]);
+				}
+			}
+			
+			private function positionChangeHandler():void{
+				workSpace.y = winTitle.height + subMenu.height + 2;
+				workSpace.positionMax = winTitle.height + 2;
+				workSpace.positionMin = winTitle.height + subMenu.height + 2;
+				subMenu.y = winTitle.height + 1;
+				subMenu.position = winTitle.height + 1;
+				subMenuMask.y = winTitle.height + 1;
+				catalogies.y = winTitle.height + subMenu.height + 2;
+				catalogiesMask.y = winTitle.height + 2;
+				catalogies.positionMax = winTitle.height + 2;
+				catalogies.positionMin = winTitle.height + subMenu.height + 2;
+				catalogies.x = -catalogies.width;
+				setPagerContainerSize();
+			}
+			
+			
+			protected function subMenu_hiddenSlideEventHandler(event:SubMenuHiddenEvent):void
+			{
+				hiddenMove.yTo = -subMenu.position;
+				hiddenMove.play([subMenu]);
+				hiddenMove.yTo = workSpace.positionMax;
+				hiddenMove.play([workSpace]);
+				hiddenMove.yTo = catalogies.positionMax;
+				hiddenMove.play([catalogies]);
+			}
+			
+			protected function workSpace_clickHandler(event:MouseEvent):void
+			{
+				if(!subMenu.fixed){
+					hiddenMove.yTo = -subMenu.position;
+					hiddenMove.play([subMenu]);
+				}
+			}
+			
+			protected function subMenu_fixSlideEventHandler(event:SubMenuHiddenEvent):void
+			{
+				hiddenMove.yTo = workSpace.positionMin;
+				hiddenMove.play([workSpace]);
+				hiddenMove.yTo = catalogies.positionMin;
+				hiddenMove.play([catalogies]);
+			}
+			
+			protected function footerbar_catalogiesClickToggleEventHandler(event:CatalogiesClickEvent):void
+			{
+				if(catalogies.x < 0){
+					catalogiesMove.xTo = catalogies.width;
+				}else{
+					catalogiesMove.xTo = 1;
+				}
+				catalogiesMove.play([workSpace]);
+				if(catalogies.x < 0){
+					catalogiesMove.xTo = 0;
+				}else{
+					catalogiesMove.xTo = -catalogies.width;
+				}
+				catalogiesMove.play([catalogies]);
+			}
+			
+			protected function sizeChangedHandler(event:EffectEvent):void
+			{
+				setPagerContainerSize();
+			}
+			
+			private function setPagerContainerSize():void{
+				//pagerContainer.width = workSpace.width - 25;
+				pagerContainer.setStyle("paddingLeft",100);
+				pagerContainer.setStyle("paddingRight",100);
+				pagerContainer.setStyle("paddingTop",100);
+				pagerContainer.setStyle("paddingBottom",100);
+				if(pager.width * pager.scaleX + 200 < workSpace.width){
+					var pw:Number = (workSpace.width - pager.width * pager.scaleX)/2 - 10;
+					pagerContainer.setStyle("paddingLeft",pw);
+					pagerContainer.setStyle("paddingRight",pw);
+				}
+				if(pager.height * pager.scaleY + 200 < workSpace.height){
+					var ph:Number = (workSpace.height - pager.height * pager.scaleY)/2;
+					pagerContainer.setStyle("paddingTop",ph);
+					pagerContainer.setStyle("paddingBottom",ph);
+				}
+			}
+			
+			protected function zoom_valueChangeEventHandler(event:SliderValueChangeEvent):void
+			{
+				pager.scaleX = event.value/100;
+				pager.scaleY = event.value/100;
+				setPagerContainerSize();
+			}
+			
+		]]>
+	</fx:Script>
+	<container:Windows width="100%" height="100%" bottom="40">
+		<title:WindowsTitle width="100%" id="winTitle"
+							headText="超级编辑器"
+							mouseDown="windowstitle_mouseDownHandler(event)" 
+							height="85" 
+							titleCloseClick="windowstitle_titleCloseClickHandler(event)"
+							titleMaxClick="windowstitle_titleMaxClickHandler(event)"
+							titleMinClick="windowstitle_titleMinClickHandler(event)"
+							selectedEvent="menu_selectedEventHandler(event)"/>
+		<container:Workspace id="workSpace" height="100%" width="100%"
+							 click="workSpace_clickHandler(event)"  x="1">
+			<mx:Canvas width="100%" height="100%" right="1">
+				<mx:VBox id="pagerContainer" verticalAlign="middle" horizontalAlign="center">
+						<container:Pager id="pager" width="595" height="841" verticalCenter="0" horizontalCenter="0">
+						</container:Pager>
+				</mx:VBox>
+			</mx:Canvas>
+			</container:Workspace>
+		<container:Catalogies id="catalogies" width="300" height="100%" mask="{catalogiesMask}"
+							  click="workSpace_clickHandler(event)"
+							  catalogiesClickToggleEvent="footerbar_catalogiesClickToggleEventHandler(event)"/>
+		<container:MaskContainer id="catalogiesMask" width="300" height="100%"/>
+		<menu:SubMenu id="subMenu" width="100%" height="142" mask="{subMenuMask}"
+					  hiddenSlideEvent="subMenu_hiddenSlideEventHandler(event)"
+					  fixSlideEvent="subMenu_fixSlideEventHandler(event)"/>
+		<container:MaskContainer id="subMenuMask" width="100%" height="142"/>
+	</container:Windows>
+	<footer:FooterBar bottom="0" left="0" right="0" height="40" 
+					  verticalAlign="middle" paddingLeft="10" paddingRight="10"
+					  click="workSpace_clickHandler(event)"
+					  catalogiesClickToggleEvent="footerbar_catalogiesClickToggleEventHandler(event)"
+					  valueChangeEvent="zoom_valueChangeEventHandler(event)"/>
+</s:WindowedApplication>
